@@ -139,11 +139,28 @@ async function runReminders(env, now) {
   } while (cursor);
 }
 
+// The app is served from the blog (GitHub Pages), so the API is called cross-origin.
+function corsHeaders(request, env) {
+  const origin = request.headers.get("Origin");
+  if (!origin || !env.ALLOWED_ORIGINS.split(",").includes(origin)) return {};
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Methods": "GET, PUT, POST, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Max-Age": "86400",
+    Vary: "Origin",
+  };
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (url.pathname.startsWith("/api/")) return handleApi(request, env, url);
-    return env.ASSETS.fetch(request);
+    if (!url.pathname.startsWith("/api/")) return Response.redirect(env.APP_URL, 302);
+    const cors = corsHeaders(request, env);
+    if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
+    const res = await handleApi(request, env, url);
+    for (const [k, v] of Object.entries(cors)) res.headers.set(k, v);
+    return res;
   },
 
   async scheduled(event, env, ctx) {

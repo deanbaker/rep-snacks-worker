@@ -3,14 +3,14 @@
   "name": "daily-workouts",
   "main": "src/index.js",
   "compatibility_date": "2026-09-01",
-  "assets": {
-    "directory": "./public",
-    "binding": "ASSETS",
-    "run_worker_first": ["/api/*"]
-  },
   "kv_namespaces": [{ "binding": "SUBS" }],
   // VAPID_PUBLIC_KEY and VAPID_PRIVATE_JWK are secrets (npm run vapid, then wrangler secret bulk vapid.secret.json).
-  "vars": { "VAPID_SUBJECT": "https://daily-workouts.deano-baker.workers.dev" },
+  "vars": {
+    "VAPID_SUBJECT": "https://dean-baker.com/workouts/",
+    "APP_URL": "https://dean-baker.com/workouts/",
+    // Pages allowed to call the API. localhost:4000 is `bundle exec jekyll serve` in the blog repo.
+    "ALLOWED_ORIGINS": "https://dean-baker.com,http://localhost:4000,http://127.0.0.1:4000"
+  },
   // Every 5 minutes: hourly reminders fire at :15 local time, snoozes land within 5 min.
   "triggers": { "crons": ["*/5 * * * *"] },
   "observability": { "enabled": true }
