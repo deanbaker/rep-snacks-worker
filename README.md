@@ -1,6 +1,6 @@
-# Quarter Past: reminder Worker
+# Rep Snacks: reminder Worker
 
-The backend for [Quarter Past](https://dean-baker.com/workouts/), which gives you a 5-minute workout at quarter past every hour.
+The backend for [Rep Snacks](https://dean-baker.com/workouts/), which gives you a 5-minute workout at quarter past every hour.
 
 The app itself (PWA, exercises, history) lives in the blog repo under `workouts/` and is served by
 GitHub Pages at `dean-baker.com/workouts/`. This Worker only does the parts a static site can't:
