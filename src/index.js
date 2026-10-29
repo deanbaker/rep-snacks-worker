@@ -8,6 +8,10 @@ const PUSH_HOSTS = [
   ".notify.windows.com",
 ];
 
+// CORS only stops other websites; scripts can call the API directly. These limit what they can do.
+const MAX_SUBS = 10; // it's a personal app: a few devices at most
+const RATE_LIMITED = ["PUT /api/sub", "DELETE /api/sub", "POST /api/snooze", "POST /api/test"];
+
 const SNOOZE_MAX_MIN = 60;
 const RECENT_DONE_MS = 30 * 60 * 1000; // don't nag if you just did one
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -69,7 +73,10 @@ async function handleApi(request, env, url) {
   const route = `${request.method} ${url.pathname}`;
 
   if (route === "GET /api/vapid") return json({ publicKey: env.VAPID_PUBLIC_KEY });
-  if (!["PUT /api/sub", "DELETE /api/sub", "POST /api/snooze", "POST /api/test"].includes(route)) return json({ error: "not found" }, 404);
+  if (!RATE_LIMITED.includes(route)) return json({ error: "not found" }, 404);
+
+  const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
+  if (env.LIMITER && !(await env.LIMITER.limit({ key: ip })).success) return json({ error: "too many requests" }, 429);
 
   const body = await readBody(request);
   const endpoint = body.subscription?.endpoint ?? body.endpoint;
@@ -80,13 +87,21 @@ async function handleApi(request, env, url) {
     case "PUT /api/sub": {
       const s = body.subscription;
       if (!s?.keys?.p256dh || !s?.keys?.auth) return json({ error: "invalid subscription" }, 400);
-      const prev = (await env.SUBS.get(key, "json")) ?? {};
+      const prev = await env.SUBS.get(key, "json");
+      const subscription = { endpoint: s.endpoint, keys: { p256dh: s.keys.p256dh, auth: s.keys.auth } };
+      if (!prev) {
+        // New device: there's room for it, and it's a real subscription (made-up endpoints and keys fail).
+        if ((await env.SUBS.list({ prefix: "sub:", limit: MAX_SUBS })).keys.length >= MAX_SUBS) return json({ error: "subscription limit reached" }, 403);
+        let status = 0;
+        try { status = await sendPush(subscription, { title: "Reminders on ✅", body: "See you at quarter past." }, env); } catch {}
+        if (status < 200 || status >= 300) return json({ error: "subscription check failed", status }, 400);
+      }
       const rec = {
-        subscription: { endpoint: s.endpoint, keys: { p256dh: s.keys.p256dh, auth: s.keys.auth } },
+        subscription,
         prefs: cleanPrefs(body.prefs),
         next: cleanNext(body.next),
         lastDoneAt: Number(body.lastDoneAt) || null,
-        snoozeUntil: body.clearSnooze ? null : prev.snoozeUntil ?? null,
+        snoozeUntil: body.clearSnooze ? null : prev?.snoozeUntil ?? null,
       };
       await env.SUBS.put(key, JSON.stringify(rec));
       return json({ ok: true });

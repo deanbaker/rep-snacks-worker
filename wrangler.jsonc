@@ -4,6 +4,8 @@
   "main": "src/index.js",
   "compatibility_date": "2026-09-01",
   "kv_namespaces": [{ "binding": "SUBS" }],
+  // Per-IP limit on the /api/* writes (the app makes a handful a day).
+  "ratelimits": [{ "name": "LIMITER", "namespace_id": "1001", "simple": { "limit": 20, "period": 60 } }],
   // VAPID_PUBLIC_KEY and VAPID_PRIVATE_JWK are secrets (npm run vapid, then wrangler secret bulk vapid.secret.json).
   "vars": {
     "VAPID_SUBJECT": "https://dean-baker.com/workouts/",

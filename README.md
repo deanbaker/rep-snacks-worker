@@ -16,6 +16,10 @@ one (so it doesn't nag right after).
 Web Push (VAPID and aes128gcm encryption) is implemented with WebCrypto in `src/webpush.js`, with no dependencies.
 Requests to anything other than `/api/*` redirect to the app.
 
+CORS only stops other websites, not scripts, so the API also limits what a direct caller can do:
+writes are rate-limited per IP (20 a minute), a new device is only stored after a "Reminders on"
+push to it succeeds (so made-up subscriptions are rejected), and there's a cap of 10 devices.
+
 ## Setup
 
 ```bash
