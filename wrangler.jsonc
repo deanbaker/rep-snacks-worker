@@ -1,5 +1,4 @@
 {
-  "$schema": "/opt/homebrew/Cellar/cloudflare-wrangler/4.127.1/libexec/lib/node_modules/wrangler/config-schema.json",
   "name": "daily-workouts",
   "main": "src/index.js",
   "compatibility_date": "2026-09-01",
