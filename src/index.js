@@ -65,6 +65,14 @@ function reminderPayload(rec) {
   };
 }
 
+// Adding a device, or changing a device's keys, needs the ENROL_CODE secret. Hashing both sides
+// first gives equal-length inputs for the constant-time compare.
+async function enrolOk(code, env) {
+  if (!env.ENROL_CODE || typeof code !== "string" || !code) return false;
+  const hash = async (s) => crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+  return crypto.subtle.timingSafeEqual(await hash(code), await hash(env.ENROL_CODE));
+}
+
 async function readBody(request) {
   try { return await request.json(); } catch { return {}; }
 }
@@ -89,6 +97,8 @@ async function handleApi(request, env, url) {
       if (!s?.keys?.p256dh || !s?.keys?.auth) return json({ error: "invalid subscription" }, 400);
       const prev = await env.SUBS.get(key, "json");
       const subscription = { endpoint: s.endpoint, keys: { p256dh: s.keys.p256dh, auth: s.keys.auth } };
+      const sameKeys = prev?.subscription?.keys?.p256dh === s.keys.p256dh && prev?.subscription?.keys?.auth === s.keys.auth;
+      if (!sameKeys && !(await enrolOk(body.enrolCode, env))) return json({ error: "wrong enrolment code" }, 403);
       if (!prev) {
         // New device: there's room for it, and it's a real subscription (made-up endpoints and keys fail).
         if ((await env.SUBS.list({ prefix: "sub:", limit: MAX_SUBS })).keys.length >= MAX_SUBS) return json({ error: "subscription limit reached" }, 403);

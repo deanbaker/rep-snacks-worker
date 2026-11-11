@@ -17,8 +17,9 @@ Web Push (VAPID and aes128gcm encryption) is implemented with WebCrypto in `src/
 Requests to anything other than `/api/*` redirect to the app.
 
 CORS only stops other websites, not scripts, so the API also limits what a direct caller can do:
-writes are rate-limited per IP (20 a minute), a new device is only stored after a "Reminders on"
-push to it succeeds (so made-up subscriptions are rejected), and there's a cap of 10 devices.
+writes are rate-limited per IP (20 a minute), adding a device (or changing its keys) needs the
+`ENROL_CODE` secret, a new device is only stored after a "Reminders on" push to it succeeds (so
+made-up subscriptions are rejected), and there's a cap of 10 devices.
 
 ## Setup
 
@@ -26,6 +27,7 @@ push to it succeeds (so made-up subscriptions are rejected), and there's a cap o
 npm run vapid                          # writes .dev.vars and vapid.secret.json (both gitignored)
 wrangler deploy                        # provisions the KV namespace on first deploy
 wrangler secret bulk vapid.secret.json # upload the VAPID keys
+wrangler secret put ENROL_CODE         # the code the app asks for when turning reminders on
 ```
 
 The front end has the Worker URL in `API_BASE` at the top of `workouts/app.js` in the blog repo.

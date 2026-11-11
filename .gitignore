@@ -3,3 +3,4 @@ node_modules/
 .dev.vars
 *.secret.json
 .DS_Store
+*.secret.txt
